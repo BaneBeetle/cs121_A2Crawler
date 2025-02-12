@@ -1,5 +1,7 @@
 import re
 from urllib.parse import urlparse
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -11,11 +13,32 @@ def extract_next_links(url, resp):
     # resp.url: the actual url of the page
     # resp.status: the status code returned by the server. 200 is OK, you got the page. Other numbers mean that there was some kind of problem.
     # resp.error: when status is not 200, you can check the error here, if needed.
+
     # resp.raw_response: this is where the page actually is. More specifically, the raw_response has two parts:
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
+
+
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
-    return list()
+
+    if resp.status != 200: # Check if it was successful
+        print("Skibidi error")
+        print(resp.error)
+        return list()
+
+    content = resp.raw_response.content
+
+    scraped_hyperlinks = []
+
+    parser = BeautifulSoup(content, "html.parser")
+
+    hyperlinks = []
+    for tags in parser.find_all('a', href=True):
+        full_url = urljoin(url, tags['href'])
+        hyperlinks.append(full_url)
+    
+    print(hyperlinks)
+    return hyperlinks
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 
