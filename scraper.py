@@ -1,13 +1,27 @@
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin, urldefrag
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
 def scraper(url, resp):
+    ''' Parses the response and extracts valid URLs from downloaded content'''
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
 
 def extract_next_links(url, resp):
+    """ Extracts hyperlinks from the content of the given Response object
+        Arguments:
+            url (str): The URL that was used to fetch the page.
+            resp: The response object containing status(resp.status), error(resp.error), and raw content.
+        Returns:
+            list: A list of extracted hyperlinks as strings
+    """
+
+    # transform relative to absolute urls
+    # remove url fragments
+    # exceptions
+
+
     # Implementation required.
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
@@ -34,16 +48,21 @@ def extract_next_links(url, resp):
 
     hyperlinks = []
     for tags in parser.find_all('a', href=True):
-        full_url = urljoin(url, tags['href'])
-        hyperlinks.append(full_url)
+        full_url = urljoin(url, tags['href']) # turns relative to absolute urls
+        hyperlinks.append(urldefrag(full_url)) # defrags url
     
     #print(hyperlinks)
     return hyperlinks
 
 def is_valid(url):
-    # Decide whether to crawl this url or not. 
-    # If you decide to crawl it, return True; otherwise return False.
+    """
+    Decide whether to crawl this url or not.
+    :param url: the url (string)
+    :return bool: True if the URL is valid for crawling, False otherwise.
+    """
     # There are already some conditions that return False.
+    # steps?
+    #
     try:
         parsed = urlparse(url)
         if parsed.scheme not in set(["http", "https"]):
@@ -61,3 +80,6 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+
+#running list of things to avoid:
+# wics
