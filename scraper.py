@@ -37,7 +37,7 @@ def extract_next_links(url, resp):
         full_url = urljoin(url, tags['href'])
         hyperlinks.append(full_url)
     
-    print(hyperlinks)
+    #print(hyperlinks)
     return hyperlinks
 
 def is_valid(url):
