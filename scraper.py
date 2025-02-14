@@ -1,5 +1,5 @@
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin, urldefrag
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from simhash import Simhash # implement Simhash to combat similar webs like doku
@@ -9,10 +9,24 @@ visited = set()
 
 
 def scraper(url, resp):
+    ''' Parses the response and extracts valid URLs from downloaded content'''
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
 
 def extract_next_links(url, resp):
+    """ Extracts hyperlinks from the content of the given Response object
+        Arguments:
+            url (str): The URL that was used to fetch the page.
+            resp: The response object containing status(resp.status), error(resp.error), and raw content.
+        Returns:
+            list: A list of extracted hyperlinks as strings
+    """
+
+    # transform relative to absolute urls
+    # remove url fragments
+    # exceptions
+
+
     # Implementation required.
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
@@ -29,8 +43,12 @@ def extract_next_links(url, resp):
 
     ### ERROR CHECKING ###
     if resp.status != 200: # Check if it was successful
-        print("Skibidi error")
+        print("Skibidi error status code {resp.status}")
         print(resp.error)
+        return list()
+
+    if not resp.raw_response or not resp.raw_response.content: # check if there is content to parse
+        print("No content to parse")
         return list()
 
     content = resp.raw_response.content
@@ -57,12 +75,17 @@ def extract_next_links(url, resp):
         hyperlinks.append(full_url)
     
     #print(hyperlinks)
-    return hyperlinks
+    return hyperlinks # maybe make it a set so it removes duplicates?
 
 def is_valid(url):
-    # Decide whether to crawl this url or not. 
-    # If you decide to crawl it, return True; otherwise return False.
+    """
+    Decide whether to crawl this url or not.
+    :param url: the url (string)
+    :return bool: True if the URL is valid for crawling, False otherwise.
+    """
     # There are already some conditions that return False.
+    # steps?
+    #
     try:
         parsed = urlparse(url)
         if parsed.scheme not in set(["http", "https"]):
@@ -80,3 +103,14 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+
+#running list of things to avoid
+# wics
+# calendars
+# i think some things are up to us we just have to defend our choices
+
+#things to do????:
+# i dont think we make sure things are only in the ics domain
+# making sure we dont crawl stuff we alr did, i think frontier maybe does it
+#     maintain list of visted urls, makes it so crawler can detect infinite loops
+# idk how we should like log stuff so we can do the report and get stats like length etc
