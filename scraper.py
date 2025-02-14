@@ -2,6 +2,11 @@ import re
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
+from simhash import Simhash # implement Simhash to combat similar webs like doku
+
+
+visited = set()
+
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -21,20 +26,34 @@ def extract_next_links(url, resp):
 
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
 
+
+    ### ERROR CHECKING ###
     if resp.status != 200: # Check if it was successful
         print("Skibidi error")
         print(resp.error)
         return list()
 
     content = resp.raw_response.content
-
     scraped_hyperlinks = []
-
     parser = BeautifulSoup(content, "html.parser")
 
+    ### SIMHASH ###
+    text = parser.get_text().lower()
+    current_simhash_value = Simhash(text.split()).value
+
+    # Check if we have seen this before
+    for seen in visited: # Loop thru the set that contains all pages we have seen
+        distance = current_simhash_value.distance(Simhash(seen)) # If distance is too low, that means it is too similar.
+        if distance <= 3: # Example of too similar is dokus.
+            print(f"Too similar, skipping {resp.url}.")
+            return [] # Return empty list to not add any new links from here
+
+    ### Add new links ###
     hyperlinks = []
     for tags in parser.find_all('a', href=True):
         full_url = urljoin(url, tags['href'])
+
+        # TODO: Implement fragmentation remover
         hyperlinks.append(full_url)
     
     #print(hyperlinks)
