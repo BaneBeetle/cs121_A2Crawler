@@ -57,14 +57,18 @@ def extract_next_links(url, resp):
 
     ### SIMHASH ###
     text = parser.get_text().lower()
-    current_simhash_value = Simhash(text.split()).value
+
+    current_simhash = Simhash(text.split())
+    current_simhash_value = current_simhash.value
 
     # Check if we have seen this before
     for seen in visited: # Loop thru the set that contains all pages we have seen
-        distance = current_simhash_value.distance(Simhash(seen)) # If distance is too low, that means it is too similar.
+        distance = current_simhash.distance(Simhash(seen)) # If distance is too low, that means it is too similar.
+        #print("CURRENT DISTANCE:", distance)
         if distance <= 3: # Example of too similar is dokus.
             print(f"Too similar, skipping {resp.url}.")
             return [] # Return empty list to not add any new links from here
+    visited.add(current_simhash_value)
 
     ### Add new links ###
     hyperlinks = []
@@ -74,7 +78,7 @@ def extract_next_links(url, resp):
         # TODO: Implement fragmentation remover
         hyperlinks.append(full_url)
     
-    #print(hyperlinks)
+
     return hyperlinks # maybe make it a set so it removes duplicates?
 
 def is_valid(url):
@@ -88,8 +92,21 @@ def is_valid(url):
     #
     try:
         parsed = urlparse(url)
+
+        domains = (
+            "ics.uci.edu",
+            "cs.uci.edu",
+            "informatics.uci.edu",
+            "stat.uci.edu",
+        )
+
+
         if parsed.scheme not in set(["http", "https"]):
             return False
+
+        if not any(parsed.netloc.endswith(domain) for domain in domains):
+            return False
+
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
