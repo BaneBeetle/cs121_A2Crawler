@@ -36,8 +36,12 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
 
     if resp.status != 200: # Check if it was successful
-        print("Skibidi error")
+        print("Skibidi error status code {resp.status}")
         print(resp.error)
+        return list()
+
+    if not resp.raw_response or not resp.raw_response.content: # check if there is content to parse
+        print("No content to parse")
         return list()
 
     content = resp.raw_response.content
@@ -46,13 +50,15 @@ def extract_next_links(url, resp):
 
     parser = BeautifulSoup(content, "html.parser")
 
-    hyperlinks = []
+    hyperlinks = [] # idt this accounts for duplicate links so we dont go in circles
+
     for tags in parser.find_all('a', href=True):
-        full_url = urljoin(url, tags['href']) # turns relative to absolute urls
-        hyperlinks.append(urldefrag(full_url)) # defrags url
+        full_url = urljoin(url, tags['href'])
+        full_url = urldefrag(full_url)[0] # defrags url
+        hyperlinks.append(full_url)
     
     #print(hyperlinks)
-    return hyperlinks
+    return hyperlinks # maybe make it a set so it removes duplicates?
 
 def is_valid(url):
     """
@@ -81,5 +87,13 @@ def is_valid(url):
         print ("TypeError for ", parsed)
         raise
 
-#running list of things to avoid:
+#running list of things to avoid
 # wics
+# calendars
+# i think some things are up to us we just have to defend our choices
+
+#things to do????:
+# i dont think we make sure things are only in the ics domain
+# making sure we dont crawl stuff we alr did, i think frontier maybe does it
+#     maintain list of visted urls, makes it so crawler can detect infinite loops
+# idk how we should like log stuff so we can do the report and get stats like length etc
