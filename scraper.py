@@ -3,10 +3,10 @@ from urllib.parse import urlparse, urljoin, urldefrag
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from simhash import Simhash # implement Simhash to combat similar webs like doku
+from urllib.parse import urldefrag
 
-
-visited = set()
-
+visited = set() # contains simhashes, used for content
+visited_urls = set()
 
 def scraper(url, resp):
     ''' Parses the response and extracts valid URLs from downloaded content'''
@@ -73,10 +73,12 @@ def extract_next_links(url, resp):
     ### Add new links ###
     hyperlinks = []
     for tags in parser.find_all('a', href=True):
-        full_url = urljoin(url, tags['href'])
+        full_url = urldefrag(urljoin(url, tags['href']))
 
         # TODO: Implement fragmentation remover
-        hyperlinks.append(full_url)
+        if full_url not in visited_urls:
+            hyperlinks.append(full_url)
+            visited_urls.add(full_url)
     
 
     return hyperlinks # maybe make it a set so it removes duplicates?
