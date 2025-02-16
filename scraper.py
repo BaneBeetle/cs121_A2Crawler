@@ -6,7 +6,7 @@ from simhash import Simhash # implement Simhash to combat similar webs like doku
 from urllib.parse import urldefrag
 
 visited = set() # contains simhashes, used for content
-visited_urls = set()
+visited_urls = set() # contains all the urls we have visited
 
 def scraper(url, resp):
     ''' Parses the response and extracts valid URLs from downloaded content'''
@@ -76,12 +76,12 @@ def extract_next_links(url, resp):
         full_url = urldefrag(urljoin(url, tags['href']))
 
         # TODO: Implement fragmentation remover
-        if full_url not in visited_urls:
+        if full_url not in visited_urls: # Have we visited it before? If not, add it to the return list
             hyperlinks.append(full_url)
             visited_urls.add(full_url)
     
 
-    return hyperlinks # maybe make it a set so it removes duplicates?
+    return hyperlinks # maybe make it a set so it removes duplicates? -- RESPONSE: idk default code made it a lst so i just didnt change it lol
 
 def is_valid(url):
     """
@@ -100,7 +100,7 @@ def is_valid(url):
             "cs.uci.edu",
             "informatics.uci.edu",
             "stat.uci.edu",
-        )
+        ) # Tuple containing domains we ONLY want to crawl
 
 
         if parsed.scheme not in set(["http", "https"]):
@@ -125,11 +125,14 @@ def is_valid(url):
 
 #running list of things to avoid
 # wics
-# calendars
+# calendars -- RESPONSE: Not sure how to check this. Most likely observe its contents and find a pattern to filter it out
 # i think some things are up to us we just have to defend our choices
 
 #things to do????:
-# i dont think we make sure things are only in the ics domain
-# making sure we dont crawl stuff we alr did, i think frontier maybe does it
-#     maintain list of visted urls, makes it so crawler can detect infinite loops
-# idk how we should like log stuff so we can do the report and get stats like length etc
+# i dont think we make sure things are only in the ics domain -- RESPONSE: Domain tuple may solve
+# making sure we dont crawl stuff we alr did, i think frontier maybe does it -- RESPONSE: Hopefully the line of code checking if its in the visited_url set solves this
+
+#     maintain list of visted urls, makes it so crawler can detect infinite loops -- RESPONSE: created set for this
+
+
+# idk how we should like log stuff so we can do the report and get stats like length etc -- RESPONSE: Most likely accessing it directly with the contents on the page (content = resp.raw_response.content)
