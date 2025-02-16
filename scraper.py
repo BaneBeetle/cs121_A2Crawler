@@ -4,9 +4,33 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from simhash import Simhash # implement Simhash to combat similar webs like doku
 from urllib.parse import urldefrag
+from collections import Counter # Better than dictionary
+
+
 
 visited = set() # contains simhashes, used for content
 visited_urls = set() # contains all the urls we have visited
+common_words = Counter() # will contain the frequency of words
+
+stop_words = (
+    "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't", "as", "at",
+    "be", "because", "been", "before", "being", "below", "between", "both", "but", "by", "can't", "cannot", "could",
+    "couldn't", "did", "didn't", "do", "does", "doesn't", "doing", "don't", "down", "during", "each", "few", "for",
+    "from", "further", "had", "hadn't", "has", "hasn't", "have", "haven't", "having", "he", "he'd", "he'll", "he's",
+    "her", "here", "here's", "hers", "herself", "him", "himself", "his", "how", "how's", "i", "i'd", "i'll", "i'm",
+    "i've", "if", "in", "into", "is", "isn't", "it", "it's", "its", "itself", "let's", "me", "more", "most", "mustn't",
+    "my", "myself", "no", "nor", "not", "of", "off", "on", "once", "only", "or", "other", "ought", "our", "ours",
+    "ourselves", "out", "over", "own", "same", "shan't", "she", "she'd", "she'll", "she's", "should", "shouldn't",
+    "so", "some", "such", "than", "that", "that's", "the", "their", "theirs", "them", "themselves", "then", "there",
+    "there's", "these", "they", "they'd", "they'll", "they're", "they've", "this", "those", "through", "to", "too",
+    "under", "until", "up", "very", "was", "wasn't", "we", "we'd", "we'll", "we're", "we've", "were", "weren't",
+    "what", "what's", "when", "when's", "where", "where's", "which", "while", "who", "who's", "whom", "why", "why's",
+    "with", "won't", "would", "wouldn't", "you", "you'd", "you'll", "you're", "you've", "your", "yours", "yourself",
+    "yourselves"
+) # STOP WORDS we will not count as per spec.
+
+
+
 
 def scraper(url, resp):
     ''' Parses the response and extracts valid URLs from downloaded content'''
@@ -55,17 +79,21 @@ def extract_next_links(url, resp):
     scraped_hyperlinks = []
     parser = BeautifulSoup(content, "html.parser")
 
-    ### SIMHASH ###
+    ### EXTRACT LOWERCASE TEXT, UPDATE MOST FREQUENT WORDS ### 
     text = parser.get_text().lower()
+    words = re.findall(r'\w+', text)
+    for word in words:
+        if word not in stop_words:
+            common_words[word] += 1
 
+    ### SIMHASH ###
     current_simhash = Simhash(text.split())
     current_simhash_value = current_simhash.value
 
     # Check if we have seen this before
     for seen in visited: # Loop thru the set that contains all pages we have seen
         distance = current_simhash.distance(Simhash(seen)) # If distance is too low, that means it is too similar.
-        #print("CURRENT DISTANCE:", distance)
-        if distance <= 3: # Example of too similar is dokus.
+        if distance <= 5: # Example of too similar is dokus.
             print(f"Too similar, skipping {resp.url}.")
             return [] # Return empty list to not add any new links from here
     visited.add(current_simhash_value)
@@ -73,7 +101,7 @@ def extract_next_links(url, resp):
     ### Add new links ###
     hyperlinks = []
     for tags in parser.find_all('a', href=True):
-        full_url = urldefrag(urljoin(url, tags['href']))
+        full_url = urldefrag(urljoin(url, tags['href']))[0]
 
         # TODO: Implement fragmentation remover
         if full_url not in visited_urls: # Have we visited it before? If not, add it to the return list
