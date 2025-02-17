@@ -87,13 +87,14 @@ def extract_next_links(url, resp):
 
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
 
+    '''
     ### Redirection check? ###
     final_url = resp.raw_response
     if final_url != url:
         print("Redirection detected")
         visited_urls.add(final_url)
         url = final_url
-
+    '''
     ### ERROR CHECKING ###
     if resp.status != 200: # Check if it was successful
         print("Skibidi error status code {resp.status}")
@@ -120,6 +121,8 @@ def extract_next_links(url, resp):
         return [] # DEAD PAGE
 
     ### OBTAIN WORD COUNT, SEE IF ITS LARGEST ###
+    global global_max
+
     if current_word_amt > global_max:
         global_max = current_word_amt
         write_new_largest(url)
@@ -130,7 +133,7 @@ def extract_next_links(url, resp):
             common_words[word] += 1
     
     ### UPDATE TOP50 WORDS FILE ###
-    write_top_words()
+    write_top50_file()
 
     ### SIMHASH ###
     current_simhash = Simhash(text.split())
@@ -153,10 +156,11 @@ def extract_next_links(url, resp):
         if (full_url not in visited_urls) and (is_valid(full_url)): # Have we visited it before? If not, add it to the return list
             hyperlinks.append(full_url)
             visited_urls.add(full_url)
+            parsed_full = urlparse(full_url)
 
-            if full_url.netloc.endswith("ics.uci.edu"):
+            if parsed_full.netloc.endswith("ics.uci.edu"):
                 # Use a canonical representation: force an "http://" prefix regardless of original scheme.
-                subdomain = "http://" + full_url.netloc
+                subdomain = "http://" + parsed_full.netloc
                 ics_domains[subdomain] = ics_domains.get(subdomain, 0) + 1 # <-- need this cuz dictionary may tweak out if value didnt exist beforehand
                 write_subdomain() # Update the txt file
 
