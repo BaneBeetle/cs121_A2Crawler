@@ -113,7 +113,6 @@ def extract_next_links(url, resp):
     text = parser.get_text().lower()
     words = re.findall(r'\w+', text)
 
-    
     current_word_amt = len(words)
 
     ### IF WORDCOUNT LESS THAN 20, DEAD PAGE ###
@@ -122,16 +121,14 @@ def extract_next_links(url, resp):
 
     ### OBTAIN WORD COUNT, SEE IF ITS LARGEST ###
     global global_max
-
     if current_word_amt > global_max:
         global_max = current_word_amt
         write_new_largest(url)
 
-
     for word in words:
-        if word not in stop_words:
+        if (word not in stop_words) and (len(word) > 2):
             common_words[word] += 1
-    
+
     ### UPDATE TOP50 WORDS FILE ###
     write_top50_file()
 
@@ -197,7 +194,7 @@ def is_valid(url):
             return False
 
         ### Check if its a common trap thing ###
-        common_trap_words = ["calendar", "session", "token", "cgi-bin", "login", "logout"] # Common trap words given by GPT
+        common_trap_words = ["calendar", "session", "token", "cgi-bin", "login", "logout", "ml", "datasets", "dataset", "events", "event", "week", "weeks", "schedule"] # Common trap words given by GPT. ADDED: datasets and dataset to avoid too large files
         for traps in common_trap_words:
             if traps in parsed.path.lower():
                 return False
