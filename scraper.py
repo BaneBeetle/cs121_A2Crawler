@@ -7,10 +7,12 @@ from urllib.parse import urldefrag
 from collections import Counter # Better than dictionary
 
 
-
+### DECLARE GLOBALS ###
 visited = set() # contains simhashes, used for content
-visited_urls = set() # contains all the urls we have visited
+visited_urls = set() # contains all the urls we have visited. For unique pages, we will just use the len function on this
 common_words = Counter() # will contain the frequency of words
+global_max = 0 # Initiate max to see which url has the most words
+ics_domains = {} # Keep track of subdomains in ics.uci.edu
 
 stop_words = (
     "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't", "as", "at",
@@ -30,8 +32,29 @@ stop_words = (
 ) # STOP WORDS we will not count as per spec.
 
 
+def write_top50_file(filename="top50_words.txt:"):
+    '''Writing top 50 words to a txt file so we can use it for the report.'''
+    with open(filename, "w") as f:
+        for word, count in common_words.most_common(50):
+            f.write(f"{word}: {count}\n")
 
+def write_uniqueurls_count(filename = "unique_url_count.txt"):
+    '''Writing unique url count to a file to use for report'''
+    with open(filename, "w") as f:
+        f.write(f"{len(visited_urls)}\n")
 
+def write_new_largest(specific_url, filename = "largest_url.txt"):
+    '''Writing largest url to a file to use for report'''
+    with open(filename, "w") as f:
+        f.write(f"{specific_url}\n")
+
+def write_subdomain(filename = "ics_subdomain.txt"):
+    '''Write subs'''
+    with open(filename, "w") as f:
+        for key, value in ics_domains.items():
+            f.write(f"{key}, {value}\n")
+
+    
 def scraper(url, resp):
     ''' Parses the response and extracts valid URLs from downloaded content'''
     links = extract_next_links(url, resp)
@@ -64,6 +87,12 @@ def extract_next_links(url, resp):
 
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
 
+    ### Redirection check? ###
+    final_url = resp.raw_response
+    if final_url != url:
+        print("Redirection detected")
+        visited_urls.add(final_url)
+        url = final_url
 
     ### ERROR CHECKING ###
     if resp.status != 200: # Check if it was successful
@@ -82,9 +111,26 @@ def extract_next_links(url, resp):
     ### EXTRACT LOWERCASE TEXT, UPDATE MOST FREQUENT WORDS ### 
     text = parser.get_text().lower()
     words = re.findall(r'\w+', text)
+
+    
+    current_word_amt = len(words)
+
+    ### IF WORDCOUNT LESS THAN 20, DEAD PAGE ###
+    if current_word_amt < 20:
+        return [] # DEAD PAGE
+
+    ### OBTAIN WORD COUNT, SEE IF ITS LARGEST ###
+    if current_word_amt > global_max:
+        global_max = current_word_amt
+        write_new_largest(url)
+
+
     for word in words:
         if word not in stop_words:
             common_words[word] += 1
+    
+    ### UPDATE TOP50 WORDS FILE ###
+    write_top_words()
 
     ### SIMHASH ###
     current_simhash = Simhash(text.split())
@@ -104,10 +150,19 @@ def extract_next_links(url, resp):
         full_url = urldefrag(urljoin(url, tags['href']))[0]
 
         # TODO: Implement fragmentation remover
-        if full_url not in visited_urls: # Have we visited it before? If not, add it to the return list
+        if (full_url not in visited_urls) and (is_valid(full_url)): # Have we visited it before? If not, add it to the return list
             hyperlinks.append(full_url)
             visited_urls.add(full_url)
+
+            if full_url.netloc.endswith("ics.uci.edu"):
+                # Use a canonical representation: force an "http://" prefix regardless of original scheme.
+                subdomain = "http://" + full_url.netloc
+                ics_domains[subdomain] = ics_domains.get(subdomain, 0) + 1 # <-- need this cuz dictionary may tweak out if value didnt exist beforehand
+                write_subdomain() # Update the txt file
+
     
+    ### UPDATE URL COUNT ###
+    write_uniqueurls_count()
 
     return hyperlinks # maybe make it a set so it removes duplicates? -- RESPONSE: idk default code made it a lst so i just didnt change it lol
 
@@ -137,6 +192,12 @@ def is_valid(url):
         if not any(parsed.netloc.endswith(domain) for domain in domains):
             return False
 
+        ### Check if its a common trap thing ###
+        common_trap_words = ["calendar", "session", "token", "cgi-bin", "login", "logout"] # Common trap words given by GPT
+        for traps in common_trap_words:
+            if traps in parsed.path.lower():
+                return False
+        
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
