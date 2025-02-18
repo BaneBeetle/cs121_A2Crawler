@@ -1,4 +1,6 @@
 import re
+import nltk
+from nltk.corpus import words
 from urllib.parse import urlparse, urljoin, urldefrag
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
@@ -13,6 +15,9 @@ visited_urls = set() # contains all the urls we have visited. For unique pages, 
 common_words = Counter() # will contain the frequency of words
 global_max = 0 # Initiate max to see which url has the most words
 ics_domains = {} # Keep track of subdomains in ics.uci.edu
+
+nltk.download('words')
+word_list = words.words()
 
 stop_words = (
     "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't", "as", "at",
@@ -31,6 +36,8 @@ stop_words = (
     "yourselves"
 ) # STOP WORDS we will not count as per spec.
 
+def is_actual_word(word):
+  return word.lower() in word_list
 
 def write_top50_file(filename="top50_words.txt:"):
     '''Writing top 50 words to a txt file so we can use it for the report.'''
@@ -119,19 +126,7 @@ def extract_next_links(url, resp):
     if current_word_amt < 20:
         return [] # DEAD PAGE
 
-    ### OBTAIN WORD COUNT, SEE IF ITS LARGEST ###
-    global global_max
-    if current_word_amt > global_max:
-        global_max = current_word_amt
-        write_new_largest(url)
-
-    for word in words:
-        if (word not in stop_words) and (len(word) > 2):
-            common_words[word] += 1
-
-    ### UPDATE TOP50 WORDS FILE ###
-    write_top50_file()
-
+    
     ### SIMHASH ###
     current_simhash = Simhash(text.split())
     current_simhash_value = current_simhash.value
@@ -144,6 +139,20 @@ def extract_next_links(url, resp):
             return [] # Return empty list to not add any new links from here
     visited.add(current_simhash_value)
 
+    ### OBTAIN WORD COUNT, SEE IF ITS LARGEST ###
+    global global_max
+    if current_word_amt > global_max:
+        global_max = current_word_amt
+        write_new_largest(url)
+
+    for word in words:
+        if (word not in stop_words) and (len(word) > 2) and (is_actual_word(word)):
+            common_words[word] += 1
+
+    ### UPDATE TOP50 WORDS FILE ###
+    write_top50_file()
+
+    
     ### Add new links ###
     hyperlinks = []
     for tags in parser.find_all('a', href=True):
@@ -194,19 +203,19 @@ def is_valid(url):
             return False
 
         ### Check if its a common trap thing ###
-        common_trap_words = ["calendar", "session", "token", "cgi-bin", "login", "logout", "ml", "datasets", "dataset", "events", "event", "week", "weeks", "schedule"] # Common trap words given by GPT. ADDED: datasets and dataset to avoid too large files
+        common_trap_words = ["calendar", "session", "token", "cgi-bin", "login", "logout", "ml", "datasets", "dataset", "events", "event", "week", "weeks", "schedule", "doku", "virtual_environments", "date"] # Common trap words given by GPT. ADDED: datasets and dataset to avoid too large files
         for traps in common_trap_words:
             if traps in parsed.path.lower():
                 return False
-        
+
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|jpg|jpeg|tiff?|mid|mp2|mp3|mp4"
             + r"|wav|avi|mov|mpeg|mpg|ram|m4v|mkv|ogg|ogv|pdf"
             + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
-            + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
-            + r"|epub|dll|cnf|tgz|sha1"
-            + r"|thmx|mso|arff|rtf|jar|csv"
+            + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso|asm|vb|sql" # Added more code ends
+            + r"|epub|dll|cnf|tgz|sha1|rs|swift|kt|kts|scala|r|lua|sh|bat|ps1|hs|erl|ex|exs|clj|cljs|cljc|f|f90|f95"
+            + r"|thmx|mso|arff|rtf|jar|csv|py|ipynb|hpp|cpp|php|ts|c|cc|cxx|cs|rb|pl|pm|go"
             + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())
 
     except TypeError:
