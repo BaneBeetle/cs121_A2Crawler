@@ -12,6 +12,7 @@ from collections import Counter # Better than dictionary
 ### DECLARE GLOBALS ###
 visited = set() # contains simhashes, used for content
 visited_urls = set() # contains all the urls we have visited. For unique pages, we will just use the len function on this
+seen1 = set() #keep track of what we have seen and visited so we never add them to the queue ever again
 common_words = Counter() # will contain the frequency of words
 global_max = 0 # Initiate max to see which url has the most words
 ics_domains = {} # Keep track of subdomains in ics.uci.edu
@@ -116,6 +117,8 @@ def extract_next_links(url, resp):
     scraped_hyperlinks = []
     parser = BeautifulSoup(content, "html.parser")
 
+    global seen1
+
     ### EXTRACT LOWERCASE TEXT, UPDATE MOST FREQUENT WORDS ### 
     text = parser.get_text().lower()
     words = re.findall(r'\w+', text)
@@ -136,7 +139,9 @@ def extract_next_links(url, resp):
         distance = current_simhash.distance(Simhash(seen)) # If distance is too low, that means it is too similar.
         if distance <= 10:
             print(f"Too similar, skipping {resp.url}.")
+            seen1.add(resp.url)
             return [] # Return empty list to not add any new links from here
+        print("Current distance:", distance)
     visited.add(current_simhash_value)
 
     ### OBTAIN WORD COUNT, SEE IF ITS LARGEST ###
@@ -159,9 +164,10 @@ def extract_next_links(url, resp):
         full_url = urldefrag(urljoin(url, tags['href']))[0]
 
         # TODO: Implement fragmentation remover
-        if (full_url not in visited_urls) and (is_valid(full_url)): # Have we visited it before? If not, add it to the return list
+        if (full_url not in visited_urls) and (is_valid(full_url) and (full_url not in seen1)): # Have we visited it before? If not, add it to the return list
             hyperlinks.append(full_url)
             visited_urls.add(full_url)
+            seen1.add(full_url)
             parsed_full = urlparse(full_url)
 
             if parsed_full.netloc.endswith("ics.uci.edu"):
@@ -187,14 +193,19 @@ def is_valid(url):
     #
     try:
         parsed = urlparse(url)
-
+        path_lower = parsed.path.lower()
+        query_lower = parsed.query.lower()
         domains = (
             "ics.uci.edu",
             "cs.uci.edu",
             "informatics.uci.edu",
             "stat.uci.edu",
         ) # Tuple containing domains we ONLY want to crawl
+        domain_trap_words = ["plrg", "password", "swiki"]
 
+        for trap in domain_trap_words:
+            if trap in parsed.netloc.lower():
+                return False
 
         if parsed.scheme not in set(["http", "https"]):
             return False
@@ -205,22 +216,26 @@ def is_valid(url):
         ### Check if its a common trap thing ###
 
         common_trap_words = ["calendar", "session", "token", "cgi-bin", "login", "logout", "ml", "datasets", "dataset", "events", "event", "week", "weeks", "schedule", "doku", "virtual_environments", "date"] # Common trap words given by GPT. ADDED: datasets and dataset to avoid too large files
-        path_lower = parsed.path.lower()
-        query_lower = parsed.query.lower()
+        
 
         for traps in common_trap_words:
-            if traps in path_lower():
+            if traps in path_lower:
                 return False
         
 
         if "doku.php" in path_lower:
             return False
-
+        if "doku" in path_lower:
+            return False
         ### Trap in Query ###
         query_trap = ["tab_files", "tab_details", "do=media"]
         for trap in query_trap:
             if trap in query_lower:
                 return False
+
+        ### Make sure I dont go thru gitlab commits ###
+        if "/-/commits" in parsed.path.lower():
+            return False
 
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
