@@ -51,7 +51,7 @@ http://wiki.ics.uci.edu, 605
 http://intranet.ics.uci.edu, 11
 http://password.ics.uci.edu, 1
 http://hub.ics.uci.edu, 4
-http://swiki.ics.uci.edu, 1954
+http://swiki.ics.uci.edu, 3732
 http://onboarding.ics.uci.edu, 1
 http://phpmyadmin.ics.uci.edu, 2
 http://pgadmin.ics.uci.edu, 1
@@ -70,3 +70,8 @@ http://ics46-staging-hub.ics.uci.edu, 1
 http://ics53-hub.ics.uci.edu, 1
 http://ics53-staging-hub.ics.uci.edu, 2
 http://helpdesk.ics.uci.edu, 1
+http://elms.ics.uci.edu, 1
+http://containers.ics.uci.edu, 1
+http://rstudio-hub.ics.uci.edu, 1
+http://gitlab.ics.uci.edu, 871
+http://checkin.ics.uci.edu, 4

@@ -134,7 +134,7 @@ def extract_next_links(url, resp):
     # Check if we have seen this before
     for seen in visited: # Loop thru the set that contains all pages we have seen
         distance = current_simhash.distance(Simhash(seen)) # If distance is too low, that means it is too similar.
-        if distance <= 5: # Example of too similar is dokus.
+        if distance <= 10:
             print(f"Too similar, skipping {resp.url}.")
             return [] # Return empty list to not add any new links from here
     visited.add(current_simhash_value)
@@ -203,9 +203,23 @@ def is_valid(url):
             return False
 
         ### Check if its a common trap thing ###
+
         common_trap_words = ["calendar", "session", "token", "cgi-bin", "login", "logout", "ml", "datasets", "dataset", "events", "event", "week", "weeks", "schedule", "doku", "virtual_environments", "date"] # Common trap words given by GPT. ADDED: datasets and dataset to avoid too large files
+        path_lower = parsed.path.lower()
+        query_lower = parsed.query.lower()
+
         for traps in common_trap_words:
-            if traps in parsed.path.lower():
+            if traps in path_lower():
+                return False
+        
+
+        if "doku.php" in path_lower:
+            return False
+
+        ### Trap in Query ###
+        query_trap = ["tab_files", "tab_details", "do=media"]
+        for trap in query_trap:
+            if trap in query_lower:
                 return False
 
         return not re.match(
