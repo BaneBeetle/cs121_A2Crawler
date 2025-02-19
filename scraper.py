@@ -127,6 +127,7 @@ def extract_next_links(url, resp):
 
     ### IF WORDCOUNT LESS THAN 20, DEAD PAGE ###
     if current_word_amt < 20:
+        print("Low information")
         return [] # DEAD PAGE
 
     
@@ -141,7 +142,6 @@ def extract_next_links(url, resp):
             print(f"Too similar, skipping {resp.url}.")
             seen1.add(resp.url)
             return [] # Return empty list to not add any new links from here
-        print("Current distance:", distance)
     visited.add(current_simhash_value)
 
     ### OBTAIN WORD COUNT, SEE IF ITS LARGEST ###
